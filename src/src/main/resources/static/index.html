@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cassandra CSV Loader</title>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body>
+<header>
+  <h1>Cassandra CSV Loader <span style="font-weight:400;color:var(--muted)">· веб</span></h1>
+  <p>Загрузка CSV в Apache Cassandra через браузер (по умолчанию порт <strong>8090</strong>). Десктопная версия — каталог <code>v.0.1</code>.</p>
+</header>
+
+<main>
+  <div id="errorBanner" class="error-banner"></div>
+
+  <section>
+    <h2>Подключение</h2>
+    <div class="grid grid-2">
+      <div>
+        <label for="profileSelect">Сохранённые профили</label>
+        <select id="profileSelect"></select>
+      </div>
+      <div>
+        <label for="profileName">Имя профиля</label>
+        <input type="text" id="profileName" placeholder="Например: prod"/>
+      </div>
+      <div>
+        <label for="contactPoints">Contact points</label>
+        <input type="text" id="contactPoints" placeholder="127.0.0.1 или host1,host2"/>
+      </div>
+      <div>
+        <label for="port">Порт</label>
+        <input type="text" id="port" value="9042"/>
+      </div>
+      <div>
+        <label for="localDc">Local DC</label>
+        <input type="text" id="localDc" placeholder="datacenter1 — как datacenter= в логе узла"/>
+      </div>
+      <div>
+        <label for="username">Пользователь</label>
+        <input type="text" id="username" autocomplete="username"/>
+      </div>
+      <div>
+        <label for="password">Пароль</label>
+        <input type="password" id="password" autocomplete="current-password"/>
+      </div>
+    </div>
+    <p id="hints" class="hint" style="color:var(--ok);"></p>
+    <div class="row">
+      <button type="button" id="btnSaveProfile" class="secondary">Сохранить профиль</button>
+      <button type="button" id="btnConnect">Подключиться</button>
+      <button type="button" id="btnDisconnect" class="danger secondary">Отключиться</button>
+      <span id="connStatus" class="status off">Не подключено</span>
+    </div>
+    <p class="hint">После подключения откройте «Топология кластера» и сверьте Local DC с полем datacenter у узла.</p>
+    <div class="row">
+      <button type="button" id="btnTopology" class="secondary" disabled>Топология кластера</button>
+    </div>
+    <pre id="topologyBox" style="display:none;margin-top:0.5rem;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;overflow:auto;max-height:200px;"></pre>
+  </section>
+
+  <section>
+    <h2>Целевая таблица и CSV</h2>
+    <div class="grid grid-2">
+      <div>
+        <label for="keyspace">Keyspace</label>
+        <input type="text" id="keyspace" list="keyspace-list" placeholder="выберите или введите" autocomplete="off"/>
+        <datalist id="keyspace-list"></datalist>
+      </div>
+      <div>
+        <label for="table">Таблица</label>
+        <input type="text" id="table" list="table-list" placeholder="выберите или введите" autocomplete="off"/>
+        <datalist id="table-list"></datalist>
+      </div>
+      <div>
+        <label for="maxRows">Записей к загрузке (макс.)</label>
+        <input type="number" id="maxRows" value="100" min="1"/>
+      </div>
+      <div>
+        <label for="csvFile">CSV файл</label>
+        <input type="file" id="csvFile" accept=".csv,text/csv"/>
+      </div>
+    </div>
+    <label class="hint" style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+      <input type="checkbox" id="firstRowHeader" checked/>
+      Первая строка файла не загружать как данные (заголовок в CSV; имена колонок из схемы БД)
+    </label>
+    <div class="row">
+      <button type="button" id="btnRefreshSchema" class="secondary" disabled>Обновить keyspace / таблицы</button>
+      <button type="button" id="btnDbSample" class="secondary" disabled>SELECT * LIMIT 5</button>
+      <button type="button" id="btnPreview" disabled>Предпросмотр CSV</button>
+      <button type="button" id="btnLoad" disabled>Начать загрузку</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Предпросмотр CSV (колонки из схемы)</h2>
+    <div class="wrap-table">
+      <table class="data" id="previewTable">
+        <thead><tr id="previewHead"></tr></thead>
+        <tbody id="previewBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Выборка из БД (LIMIT 5)</h2>
+    <div class="wrap-table">
+      <table class="data" id="dbTable">
+        <thead><tr id="dbHead"></tr></thead>
+        <tbody id="dbBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Журнал загрузки</h2>
+    <textarea id="log" readonly></textarea>
+  </section>
+</main>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
