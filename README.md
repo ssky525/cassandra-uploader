@@ -4,6 +4,7 @@
 cd /Users/ppa/Documents/CursorWorkDir/Cassandra-tool/v.0.1
 mvn javafx:run
 
+
 Запуск веб-приложения
 cd /Users/ppa/Documents/CursorWorkDir/Cassandra-tool
 mvn spring-boot:run
