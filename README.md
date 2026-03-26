@@ -1,5 +1,12 @@
 # cassandra-uploader
 
-Для запуска выполнить mvn javafx:run
+Запуск старой десктопной версии
+cd /Users/ppa/Documents/CursorWorkDir/Cassandra-tool/v.0.1
+mvn javafx:run
 
-Maven-приложение на Java 11 + JavaFX 17 + DataStax Java Driver 4.17 + OpenCSV.
+Запуск веб-приложения
+cd /Users/ppa/Documents/CursorWorkDir/Cassandra-tool
+mvn spring-boot:run
+
+запуск с другим портом без правки файлов:
+mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
