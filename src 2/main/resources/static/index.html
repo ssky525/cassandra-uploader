@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cassandra CSV Loader</title>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body>
+<header>
+  <h1>Cassandra CSV Loader <span style="font-weight:400;color:var(--muted)">· веб</span></h1>
+  <p>Загрузка CSV в Apache Cassandra через браузер (по умолчанию порт <strong>8090</strong>). Десктопная версия — каталог <code>v.0.1</code>.</p>
+</header>
+
+<main>
+  <div id="errorBanner" class="error-banner"></div>
+
+  <section class="connection-section">
+    <h2>Подключения к кластерам</h2>
+    <div class="conn-toolbar">
+      <button type="button" class="icon-btn" id="btnConnAdd" title="Добавить подключение">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+      <button type="button" class="icon-btn" id="btnConnEdit" title="Редактировать выбранное" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+      <button type="button" class="icon-btn danger" id="btnConnDelete" title="Удалить выбранное" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </button>
+    </div>
+    <p class="hint conn-hint">Выберите подключение в списке. Добавить / изменить / удалить — кнопками слева.</p>
+    <ul id="connList" class="conn-list" role="listbox" aria-label="Сохранённые подключения"></ul>
+    <p id="hints" class="hint" style="color:var(--ok);"></p>
+    <div class="row">
+      <button type="button" id="btnConnect">Подключиться</button>
+      <button type="button" id="btnDisconnect" class="danger secondary">Отключиться</button>
+      <span id="connStatus" class="status off">Не подключено</span>
+    </div>
+    <p class="hint">После подключения откройте «Топология кластера» и сверьте Local DC с полем datacenter у узла.</p>
+    <div class="row">
+      <button type="button" id="btnTopology" class="secondary" disabled>Топология кластера</button>
+    </div>
+    <pre id="topologyBox" style="display:none;margin-top:0.5rem;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-size:0.75rem;overflow:auto;max-height:200px;"></pre>
+  </section>
+
+  <section id="schemaBrowserSection" class="needs-cassandra" aria-label="Структура кластера">
+    <h2>Структура кластера</h2>
+    <div class="schema-browser-grid">
+      <div class="schema-tree-wrap">
+        <div class="row" style="margin-bottom:0.5rem;">
+          <button type="button" id="btnSchemaTreeRefresh" class="secondary" disabled>Обновить дерево</button>
+        </div>
+        <div id="schemaTree" class="schema-tree"></div>
+        <p class="hint schema-tree-hint">Клик по keyspace или таблице — метаданные справа. Двойной клик по таблице — загрузка строк.</p>
+      </div>
+      <div class="schema-right">
+        <h3 class="schema-subtitle">Метаданные (клик по keyspace или таблице слева)</h3>
+        <pre id="schemaMeta" class="schema-meta"></pre>
+        <h3 class="schema-subtitle">Данные таблицы</h3>
+        <div class="row browse-toolbar">
+          <label for="browseLimit">Строк (LIMIT):</label>
+          <input type="number" id="browseLimit" value="10" min="1" max="1000" title="От 1 до 1000"/>
+          <button type="button" id="btnBrowseApply" class="secondary" disabled>Показать</button>
+          <span id="browseTableLabel" class="hint"></span>
+        </div>
+        <div class="wrap-table browse-data-wrap">
+          <table class="data data-browse" id="browseTable">
+            <thead><tr id="browseHead"></tr></thead>
+            <tbody id="browseBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="connModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="connModalTitle">
+    <div class="modal-backdrop" id="connModalBackdrop"></div>
+    <div class="modal-box">
+      <h3 id="connModalTitle">Новое подключение</h3>
+      <div class="grid grid-2 modal-fields">
+        <div>
+          <label for="m_profileName">Имя профиля</label>
+          <input type="text" id="m_profileName" placeholder="Например: prod"/>
+        </div>
+        <div>
+          <label for="m_contactPoints">Contact points</label>
+          <input type="text" id="m_contactPoints" placeholder="127.0.0.1 или host1,host2"/>
+        </div>
+        <div>
+          <label for="m_port">Порт</label>
+          <input type="text" id="m_port" value="9042"/>
+        </div>
+        <div>
+          <label for="m_localDc">Local DC</label>
+          <input type="text" id="m_localDc" placeholder="datacenter1 — как datacenter= в логе узла"/>
+        </div>
+        <div>
+          <label for="m_username">Пользователь</label>
+          <input type="text" id="m_username" autocomplete="username"/>
+        </div>
+        <div>
+          <label for="m_password">Пароль</label>
+          <input type="password" id="m_password" autocomplete="current-password"/>
+        </div>
+      </div>
+      <div class="modal-actions row">
+        <button type="button" id="btnConnModalSave">Сохранить</button>
+        <button type="button" id="btnConnModalCancel" class="secondary">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Целевая таблица и CSV</h2>
+    <div class="grid grid-2">
+      <div>
+        <label for="keyspace">Keyspace</label>
+        <input type="text" id="keyspace" list="keyspace-list" placeholder="выберите или введите" autocomplete="off"/>
+        <datalist id="keyspace-list"></datalist>
+      </div>
+      <div>
+        <label for="table">Таблица</label>
+        <input type="text" id="table" list="table-list" placeholder="выберите или введите" autocomplete="off"/>
+        <datalist id="table-list"></datalist>
+      </div>
+      <div>
+        <label for="maxRows">Записей к загрузке (макс.)</label>
+        <input type="number" id="maxRows" value="100" min="1"/>
+      </div>
+      <div>
+        <label for="csvFile">CSV файл</label>
+        <input type="file" id="csvFile" accept=".csv,text/csv"/>
+      </div>
+    </div>
+    <label class="hint" style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+      <input type="checkbox" id="firstRowHeader" checked/>
+      Первая строка файла не загружать как данные (заголовок в CSV; имена колонок из схемы БД)
+    </label>
+    <div class="row">
+      <button type="button" id="btnRefreshSchema" class="secondary" disabled>Обновить списки полей</button>
+      <button type="button" id="btnPreview" disabled>Предпросмотр CSV</button>
+      <button type="button" id="btnLoad" disabled>Начать загрузку</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Предпросмотр CSV (колонки из схемы)</h2>
+    <div class="wrap-table">
+      <table class="data" id="previewTable">
+        <thead><tr id="previewHead"></tr></thead>
+        <tbody id="previewBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Журнал загрузки</h2>
+    <textarea id="log" readonly></textarea>
+  </section>
+</main>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
